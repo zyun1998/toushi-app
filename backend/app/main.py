@@ -5,9 +5,15 @@ from app.api.routes import router
 
 app = FastAPI(title="NISA Simulator API")
 
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://toushi-91yrykn5p-junghwan-chois-projects.vercel.app",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
