@@ -8,7 +8,7 @@ app = FastAPI(title="NISA Simulator API")
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://toushi-91yrykn5p-junghwan-chois-projects.vercel.app",
+    "https://toushi-jcw4rx91u-junghwan-chois-projects.vercel.app/",
     "https://toushi-app.vercel.app/",
 ]
 
