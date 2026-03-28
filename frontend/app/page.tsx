@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import Image from "next/image";
 import SimulationForm from "@/components/SimulationForm";
 import { fetchProducts } from "./api-client";
