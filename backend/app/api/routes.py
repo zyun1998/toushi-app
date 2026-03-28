@@ -45,19 +45,24 @@ def simulate(req: SimulationRequest):
             period_years=10,
         )
     except Exception as e:
-        if req.scenario_mode == "market_auto":
-            scenario_build = build_scenarios(
-                product_code=req.product_code,
-                scenario_mode="fixed",
-                period_years=10,
-            )
-            scenario_error = str(e)
-        else:
-            raise HTTPException(status_code=400, detail=str(e))
-    else:
-        scenario_error = None
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "シナリオ生成に失敗しました。",
+                "requested_product_code": req.product_code,
+                "requested_scenario_mode": req.scenario_mode,
+                "error": str(e),
+            },
+        )
 
-    config = scenario_build.scenarios[req.scenario]
+    try:
+        config = scenario_build.scenarios[req.scenario]
+    except KeyError:
+        raise HTTPException(
+            status_code=400,
+            detail=f"サポートされていないシナリオです: {req.scenario}",
+        )
+
     benchmark_info = scenario_build.benchmark_info
     product_label = get_product_label(req.product_code, req.language)
     product_desc = get_product_description(req.product_code, req.language)
@@ -71,7 +76,7 @@ def simulate(req: SimulationRequest):
         crash_rate=config["crash_rate"],
         product_code=req.product_code,
         product_label=product_label,
-        scenario_mode=req.scenario_mode if scenario_error is None else "fixed",
+        scenario_mode=req.scenario_mode,
         benchmark_ticker=benchmark_info["benchmark_ticker"],
         period_years=benchmark_info["period_years"],
         calculation_method=benchmark_info["calculation_method"],
@@ -79,17 +84,36 @@ def simulate(req: SimulationRequest):
     )
 
     result = simulate_monthly_investment(sim_input)
-    explanation = generate_result_explanation(result, req.language)
+
+    try:
+        explanation = generate_result_explanation(result, req.language)
+    except Exception as e:
+        explanation = f"説明生成に失敗しました: {str(e)}"
 
     return {
         "result": result,
         "explanation": explanation,
         "product_description": product_desc,
-        "scenario_error": scenario_error,
+        "scenario_error": None,
+        "debug": {
+            "requested_product_code": req.product_code,
+            "requested_scenario_mode": req.scenario_mode,
+            "applied_scenario_mode": sim_input.scenario_mode,
+            "benchmark_ticker": sim_input.benchmark_ticker,
+            "annual_return": sim_input.annual_return,
+            "scenario": sim_input.scenario,
+        },
     }
 
 
 @router.post("/followup")
 def followup(req: FollowupRequest):
-    answer = answer_followup_question(req.result, req.question, req.language)
+    try:
+        answer = answer_followup_question(req.result, req.question, req.language)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"追加説明の生成に失敗しました: {str(e)}",
+        )
+
     return {"answer": answer}
