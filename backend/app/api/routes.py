@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 
 from app.schemas import SimulationRequest, FollowupRequest
@@ -8,6 +10,8 @@ from app.services.ai_service import (
     generate_result_explanation,
     answer_followup_question,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -42,9 +46,15 @@ def simulate(req: SimulationRequest):
         scenario_build = build_scenarios(
             product_code=req.product_code,
             scenario_mode=req.scenario_mode,
-            period_years=10,
+            period_years=req.years,
         )
     except Exception as e:
+        logger.exception(
+            "Scenario build failed. product_code=%s scenario_mode=%s years=%s",
+            req.product_code,
+            req.scenario_mode,
+            req.years,
+        )
         raise HTTPException(
             status_code=400,
             detail={
@@ -88,6 +98,7 @@ def simulate(req: SimulationRequest):
     try:
         explanation = generate_result_explanation(result, req.language)
     except Exception as e:
+        logger.exception("Explanation generation failed")
         explanation = f"説明生成に失敗しました: {str(e)}"
 
     return {
@@ -111,6 +122,7 @@ def followup(req: FollowupRequest):
     try:
         answer = answer_followup_question(req.result, req.question, req.language)
     except Exception as e:
+        logger.exception("Followup generation failed")
         raise HTTPException(
             status_code=400,
             detail=f"追加説明の生成に失敗しました: {str(e)}",
