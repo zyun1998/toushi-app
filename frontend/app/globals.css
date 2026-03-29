@@ -186,3 +186,8 @@ main {
     border-radius: 22px;
   }
 }
+
+.menu-cute {
+  font-family: 'Hachi Maru Pop', cursive;
+  letter-spacing: 0.04em;
+}

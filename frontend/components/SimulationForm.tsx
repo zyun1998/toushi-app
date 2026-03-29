@@ -15,6 +15,24 @@ type Product = {
   description_ko: string;
 };
 
+type HistoryItem = {
+  id: string;
+  date: string;
+  product_code: string;
+  product_label: string;
+  scenario_mode: "fixed" | "market_auto";
+  scenario: "bull" | "base" | "bear";
+  monthly_amount: number;
+  years: number;
+  annual_return: number;
+  benchmark_ticker: string;
+  summary: {
+    total_principal: number;
+    final_balance: number;
+    total_profit: number;
+  };
+};
+
 export default function SimulationForm({ products = [] }: { products?: Product[] }) {
   const [monthlyAmount, setMonthlyAmount] = useState(100000);
   const [years, setYears] = useState(15);
@@ -27,6 +45,40 @@ export default function SimulationForm({ products = [] }: { products?: Product[]
   const [data, setData] = useState<any>(null);
 
   const selectedProduct = products.find((p) => p.code === productCode);
+
+  function saveHistory(result: any) {
+    try {
+      const input = result?.result?.input;
+      const summary = result?.result?.summary;
+
+      if (!input || !summary) return;
+
+      const item: HistoryItem = {
+        id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        date: new Date().toISOString(),
+        product_code: input.product_code,
+        product_label: input.product_label,
+        scenario_mode: input.scenario_mode,
+        scenario: input.scenario,
+        monthly_amount: input.monthly_amount,
+        years: input.years,
+        annual_return: input.annual_return,
+        benchmark_ticker: input.benchmark_ticker,
+        summary: {
+          total_principal: summary.total_principal,
+          final_balance: summary.final_balance,
+          total_profit: summary.total_profit,
+        },
+      };
+
+      const current = JSON.parse(localStorage.getItem("simulation_history") || "[]");
+      const next = Array.isArray(current) ? [item, ...current].slice(0, 30) : [item];
+
+      localStorage.setItem("simulation_history", JSON.stringify(next));
+    } catch (e) {
+      console.error("履歴保存に失敗しました:", e);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +96,7 @@ export default function SimulationForm({ products = [] }: { products?: Product[]
       });
 
       setData(result);
+      saveHistory(result);
     } catch (err: any) {
       setError(err.message || "エラーが発生しました。");
     } finally {

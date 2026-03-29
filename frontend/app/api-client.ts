@@ -1,10 +1,33 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE;
 
-export async function fetchProducts() {
-  const res = await fetch(`${API_BASE}/products`, { cache: "no-store" });
-  if (!res.ok) {
-    throw new Error("商品一覧の取得に失敗しました。");
+if (!API_BASE) {
+  throw new Error("NEXT_PUBLIC_API_BASE が設定されていません。");
+}
+
+async function parseError(res: Response, fallbackMessage: string) {
+  try {
+    const data = await res.json();
+    if (typeof data?.detail === "string") {
+      return data.detail;
+    }
+    if (typeof data?.message === "string") {
+      return data.message;
+    }
+    return fallbackMessage;
+  } catch {
+    return fallbackMessage;
   }
+}
+
+export async function fetchProducts() {
+  const res = await fetch(`${API_BASE}/products`, {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error(await parseError(res, "商品一覧の取得に失敗しました。"));
+  }
+
   return res.json();
 }
 
@@ -25,8 +48,7 @@ export async function simulate(payload: {
   });
 
   if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.detail || "シミュレーションの実行に失敗しました。");
+    throw new Error(await parseError(res, "シミュレーションの実行に失敗しました。"));
   }
 
   return res.json();
@@ -46,7 +68,7 @@ export async function askFollowup(payload: {
   });
 
   if (!res.ok) {
-    throw new Error("追加質問の送信に失敗しました。");
+    throw new Error(await parseError(res, "追加質問の送信に失敗しました。"));
   }
 
   return res.json();
